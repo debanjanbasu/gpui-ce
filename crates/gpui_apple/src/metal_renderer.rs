@@ -298,6 +298,23 @@ impl MetalRenderer {
         Self::new_internal(device, Some(layer), !transparent, instance_buffer_pool)
     }
 
+    /// Creates a renderer that draws into an existing CAMetalLayer (the ios
+    /// MetalView's layer-backed backing store, mirroring the upstream model).
+    pub fn from_layer(
+        layer: &objc2_quartz_core::CAMetalLayer,
+        transparent: bool,
+        instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>,
+    ) -> Self {
+        let device = Self::create_device();
+        let owned = unsafe { metal::MetalLayer::from_ptr(layer as *const _ as *mut _) };
+        owned.set_device(&device);
+        owned.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
+        owned.set_maximum_drawable_count(3);
+        #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
+        owned.set_framebuffer_only(false);
+        Self::new_internal(device, Some(owned), !transparent, instance_buffer_pool)
+    }
+
     /// Creates a new headless MetalRenderer for offscreen rendering without a window.
     ///
     /// This renderer can render scenes to images without requiring a CAMetalLayer,
@@ -1871,84 +1888,94 @@ impl MetalRenderer {
         command_encoder.set_fragment_sampler_state(SAMPLER_SLOT, Some(&self.sampler));
 
         for surface in surfaces {
-            let image_buffer = match &surface.source {
-                SurfaceSource::Surface(image_buffer) => image_buffer,
-                SurfaceSource::Unsupported(size) => {
-                    log::error!("Metal cannot draw unsupported surface source with size {size:?}");
-                    continue;
-                }
-                // WGPU textures exist when gpui's `custom-gpu` feature is on; only
-                // the WGPU renderer (gpui_macos's `wgpu` feature) can draw them.
-                #[allow(unreachable_patterns)]
-                _ => {
-                    log::error!("Metal cannot draw WGPU texture surfaces");
-                    continue;
-                }
-            };
-
-            assert_eq!(
-                image_buffer.get_pixel_format(),
-                kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
-            );
-
-            let y_texture = self
-                .core_video_texture_cache
-                .create_texture_from_image(
-                    image_buffer.as_concrete_TypeRef(),
-                    None,
-                    MTLPixelFormat::R8Unorm,
-                    image_buffer.get_width_of_plane(0),
-                    image_buffer.get_height_of_plane(0),
-                    0,
-                )
-                .unwrap();
-            let cb_cr_texture = self
-                .core_video_texture_cache
-                .create_texture_from_image(
-                    image_buffer.as_concrete_TypeRef(),
-                    None,
-                    MTLPixelFormat::RG8Unorm,
-                    image_buffer.get_width_of_plane(1),
-                    image_buffer.get_height_of_plane(1),
-                    1,
-                )
-                .unwrap();
-
-            let surface_uniforms = SurfaceUniforms {
-                bounds: surface.bounds.into(),
-                content_mask: surface.content_mask.into(),
-                color_format: SurfaceColorFormat::Yuv,
-                opacity: 1.0,
-                padding0: 0,
-                padding1: 0,
-                padding2: 0,
-                padding3: 0,
-                padding4: 0,
-                padding5: 0,
-            };
-            command_encoder.set_vertex_bytes(
-                DATA_SLOT,
-                mem::size_of::<SurfaceUniforms>() as u64,
-                &surface_uniforms as *const SurfaceUniforms as *const _,
-            );
-            command_encoder.set_fragment_bytes(
-                DATA_SLOT,
-                mem::size_of::<SurfaceUniforms>() as u64,
-                &surface_uniforms as *const SurfaceUniforms as *const _,
-            );
-            command_encoder.set_fragment_texture(PRIMARY_TEXTURE_SLOT, unsafe {
-                let texture = CVMetalTextureGetTexture(y_texture.as_concrete_TypeRef());
-                Some(metal::TextureRef::from_ptr(texture as *mut _))
-            });
-            command_encoder.set_fragment_texture(SECONDARY_TEXTURE_SLOT, unsafe {
-                let texture = CVMetalTextureGetTexture(cb_cr_texture.as_concrete_TypeRef());
-                Some(metal::TextureRef::from_ptr(texture as *mut _))
-            });
-
-            command_encoder.draw_primitives(metal::MTLPrimitiveType::TriangleStrip, 0, 4);
+            // macOS-only CoreVideo sample-buffer path. iOS renders through
+            // the CAMetalLayer drawable directly (no SurfaceSource::Surface).
+            #[cfg(target_os = "macos")]
+            if let SurfaceSource::Surface(image_buffer) = &surface.source {
+                self.draw_surface_image_buffer(
+                    command_encoder,
+                    image_buffer,
+                    &surface.bounds,
+                    &surface.content_mask,
+                );
+            }
+            #[allow(unreachable_patterns)]
+            let _ = &surface.source;
         }
         true
     }
+
+    /// Draws a macOS CoreVideo sample buffer through the YUV pipeline.
+    #[cfg(target_os = "macos")]
+    fn draw_surface_image_buffer(
+        &mut self,
+        command_encoder: &metal::RenderCommandEncoderRef,
+        image_buffer: &core_video::pixel_buffer::CVPixelBuffer,
+        bounds: &gpui::Bounds<gpui::ScaledPixels>,
+        _content_mask: &gpui::ContentMask<gpui::ScaledPixels>,
+    ) {
+        assert_eq!(
+            image_buffer.get_pixel_format(),
+            kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        );
+
+        let y_texture = self
+            .core_video_texture_cache
+            .create_texture_from_image(
+                image_buffer.as_concrete_TypeRef(),
+                None,
+                MTLPixelFormat::R8Unorm,
+                image_buffer.get_width_of_plane(0),
+                image_buffer.get_height_of_plane(0),
+                0,
+            )
+            .unwrap();
+        let cb_cr_texture = self
+            .core_video_texture_cache
+            .create_texture_from_image(
+                image_buffer.as_concrete_TypeRef(),
+                None,
+                MTLPixelFormat::RG8Unorm,
+                image_buffer.get_width_of_plane(1),
+                image_buffer.get_height_of_plane(1),
+                1,
+            )
+            .unwrap();
+
+        let surface_uniforms = SurfaceUniforms {
+            bounds: (*bounds).into(),
+            content_mask: (*_content_mask).into(),
+            color_format: SurfaceColorFormat::Yuv,
+            opacity: 1.0,
+            padding0: 0,
+            padding1: 0,
+            padding2: 0,
+            padding3: 0,
+            padding4: 0,
+            padding5: 0,
+        };
+        command_encoder.set_vertex_bytes(
+            DATA_SLOT,
+            mem::size_of::<SurfaceUniforms>() as u64,
+            &surface_uniforms as *const SurfaceUniforms as *const _,
+        );
+        command_encoder.set_fragment_bytes(
+            DATA_SLOT,
+            mem::size_of::<SurfaceUniforms>() as u64,
+            &surface_uniforms as *const SurfaceUniforms as *const _,
+        );
+        command_encoder.set_fragment_texture(PRIMARY_TEXTURE_SLOT, unsafe {
+            let texture = CVMetalTextureGetTexture(y_texture.as_concrete_TypeRef());
+            Some(metal::TextureRef::from_ptr(texture as *mut _))
+        });
+        command_encoder.set_fragment_texture(SECONDARY_TEXTURE_SLOT, unsafe {
+            let texture = CVMetalTextureGetTexture(cb_cr_texture.as_concrete_TypeRef());
+            Some(metal::TextureRef::from_ptr(texture as *mut _))
+        });
+
+        command_encoder.draw_primitives(metal::MTLPrimitiveType::TriangleStrip, 0, 4);
+    }
+
 }
 
 fn new_command_encoder_for_texture<'a>(

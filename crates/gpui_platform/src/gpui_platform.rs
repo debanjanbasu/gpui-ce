@@ -73,6 +73,11 @@ pub fn current_platform(headless: bool) -> Rc<dyn Platform> {
         gpui_linux::current_platform(headless)
     }
 
+    #[cfg(target_os = "ios")]
+    {
+        gpui_ios::current_platform(headless)
+    }
+
     #[cfg(target_family = "wasm")]
     {
         let _ = headless;

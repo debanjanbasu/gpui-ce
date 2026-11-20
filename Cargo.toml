@@ -2,6 +2,7 @@
 members = [
   "./crates/gpui/",
   "./crates/gpui_render/",
+  "./crates/gpui_ios/",
   "./crates/gpui_web/",
   "./crates/gpui_wgpu/",
   "./crates/gpui_ce_parley/",
@@ -44,6 +45,9 @@ accesskit_consumer = "0.38.0"
 accesskit_macos = "0.26.0"
 accesskit_unix = "0.22.0"
 accesskit_windows = "0.33.1"
+accesskit_ios = "0.1.2"
+objc2-core-foundation = "=0.3.2"
+objc2-ui-kit = { version = "0.3.2", default-features = false }
 anyhow = "1.0.86"
 async-task = "4.7"
 backtrace = "0.3"
@@ -126,6 +130,7 @@ objc2 = "0.6"
 objc2-foundation = { version = "=0.3.2", default-features = false, features = [
   "NSArray",
   "NSAutoreleasePool",
+  "block2",
   "NSAttributedString",
   "NSBundle",
   "NSCoder",
@@ -138,6 +143,7 @@ objc2-foundation = { version = "=0.3.2", default-features = false, features = [
   "NSNotification",
   "NSNull",
   "NSObjCRuntime",
+  "NSOperation",
   "NSObject",
   "NSProcessInfo",
   "NSRange",
@@ -224,6 +230,7 @@ objc2-core-media = { version = "0.3", default-features = false, features = [
 objc2-quartz-core = { version = "0.3", default-features = false, features = [
   "CALayer",
   "CAMetalLayer",
+  "CADisplayLink",
 ] }
 objc2-screen-capture-kit = { version = "0.3", default-features = false, features = [
   "std",
@@ -245,6 +252,7 @@ gpui_render = { path = "./crates/gpui_render/", version = "0.4.0", package = "gp
 gpui_platform = { path = "./crates/gpui_platform/", version = "0.4.0", package = "gpui_ce_platform" }
 gpui_linux = { path = "./crates/gpui_linux/", version = "0.4.0", package = "gpui_ce_linux", default-features = false }
 gpui_macos = { path = "./crates/gpui_macos/", version = "0.4.0", package = "gpui_ce_macos" }
+gpui_ios = { path = "./crates/gpui_ios/", version = "0.4.0", package = "gpui_ce_ios" }
 gpui_apple = { path = "./crates/gpui_apple/", version = "0.4.0", package = "gpui_ce_apple" }
 gpui_windows = { path = "./crates/gpui_windows/", version = "0.4.0", package = "gpui_ce_windows" }
 gpui_web = { path = "./crates/gpui_web/", version = "0.4.0", package = "gpui_ce_web" }

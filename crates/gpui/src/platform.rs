@@ -2295,6 +2295,12 @@ impl PlatformInputHandler {
     }
 
     /// See [`InputHandler::element_bounds`].
+    pub fn selection_bounds_for_range(&mut self, range_utf16: Range<usize>) -> Vec<Bounds<Pixels>> {
+        self.cx
+            .update(|window, cx| self.handler.selection_bounds_for_range(range_utf16, window, cx))
+            .unwrap_or_default()
+    }
+
     pub fn element_bounds(&mut self) -> Option<Bounds<Pixels>> {
         self.cx
             .update(|window, cx| self.handler.element_bounds(window, cx))
@@ -2454,6 +2460,18 @@ pub trait InputHandler: 'static {
         window: &mut Window,
         cx: &mut App,
     ) -> Option<Bounds<Pixels>>;
+
+    /// Get the bounds of each selection rectangle in the given document range,
+    /// in screen coordinates. Multi-rect selection support for ios
+    /// UITextSelectionRects; defaults to a single rect from [`Self::bounds_for_range`].
+    fn selection_bounds_for_range(
+        &mut self,
+        range_utf16: Range<usize>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Vec<Bounds<Pixels>> {
+        self.bounds_for_range(range_utf16, window, cx).into_iter().collect()
+    }
 
     /// Get the character offset for the given point in terms of UTF16 characters
     ///
