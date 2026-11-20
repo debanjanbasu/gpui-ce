@@ -180,7 +180,6 @@ impl PlatformKeyboardLayout for IosKeyboardLayout {
 }
 
 impl Platform for IosPlatform {
-
     fn background_executor(&self) -> BackgroundExecutor {
         self.0.background_executor.clone()
     }
@@ -345,8 +344,6 @@ impl Platform for IosPlatform {
 
     fn on_system_wake(&self, _callback: Box<dyn FnMut()>) {}
 
-
-
     fn on_app_lifecycle(&self, callback: Box<dyn FnMut(AppLifecyclePhase)>) {
         self.0.application.app_lifecycle.set(callback);
     }
@@ -444,10 +441,7 @@ impl Platform for IosPlatform {
     }
 
     fn on_thermal_state_change(&self, callback: Box<dyn FnMut()>) {
-        let observer = process_info::observe_thermal_state(
-            &self.0.foreground_executor,
-            callback,
-        );
+        let observer = process_info::observe_thermal_state(&self.0.foreground_executor, callback);
         self.0.thermal_observer.replace(Some(observer));
     }
 

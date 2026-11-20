@@ -861,7 +861,6 @@ impl PlatformWindow for IosWindow {
         Some(Rc::new(IosDisplay::from_screen(self.window.screen())))
     }
 
-
     fn mouse_position(&self) -> Point<Pixels> {
         self.mouse_position.get()
     }

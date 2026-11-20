@@ -1975,7 +1975,6 @@ impl MetalRenderer {
 
         command_encoder.draw_primitives(metal::MTLPrimitiveType::TriangleStrip, 0, 4);
     }
-
 }
 
 fn new_command_encoder_for_texture<'a>(

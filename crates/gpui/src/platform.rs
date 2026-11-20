@@ -2297,7 +2297,10 @@ impl PlatformInputHandler {
     /// See [`InputHandler::element_bounds`].
     pub fn selection_bounds_for_range(&mut self, range_utf16: Range<usize>) -> Vec<Bounds<Pixels>> {
         self.cx
-            .update(|window, cx| self.handler.selection_bounds_for_range(range_utf16, window, cx))
+            .update(|window, cx| {
+                self.handler
+                    .selection_bounds_for_range(range_utf16, window, cx)
+            })
             .unwrap_or_default()
     }
 
@@ -2470,7 +2473,9 @@ pub trait InputHandler: 'static {
         window: &mut Window,
         cx: &mut App,
     ) -> Vec<Bounds<Pixels>> {
-        self.bounds_for_range(range_utf16, window, cx).into_iter().collect()
+        self.bounds_for_range(range_utf16, window, cx)
+            .into_iter()
+            .collect()
     }
 
     /// Get the character offset for the given point in terms of UTF16 characters

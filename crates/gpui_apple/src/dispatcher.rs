@@ -34,10 +34,12 @@ struct Scheduled {
 impl AppleDispatcher {
     /// Creates the dispatcher.
     pub fn new() -> Self {
-        Self { state: Arc::new(DispatcherState {
-            queue: Mutex::new(Queue::default()),
-            signal: Condvar::new(),
-        }) }
+        Self {
+            state: Arc::new(DispatcherState {
+                queue: Mutex::new(Queue::default()),
+                signal: Condvar::new(),
+            }),
+        }
     }
 
     /// Drains all currently-ready runnables. Called from the platform's
@@ -45,7 +47,11 @@ impl AppleDispatcher {
     pub fn drain(&self) {
         loop {
             let runnable = {
-                let mut queue = self.state.queue.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                let mut queue = self
+                    .state
+                    .queue
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
                 queue.background.pop_front()
             };
             let Some(runnable) = runnable else { break };
@@ -67,7 +73,11 @@ impl PlatformDispatcher for AppleDispatcher {
     }
 
     fn dispatch(&self, runnable: RunnableVariant, priority: Priority) {
-        let mut queue = self.state.queue.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut queue = self
+            .state
+            .queue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         queue.main.push_back(runnable);
         self.state.signal.notify_one();
         drop(queue);
@@ -75,7 +85,11 @@ impl PlatformDispatcher for AppleDispatcher {
     }
 
     fn dispatch_on_main_thread(&self, runnable: RunnableVariant, _priority: Priority) {
-        let mut queue = self.state.queue.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut queue = self
+            .state
+            .queue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         queue.main.push_back(runnable);
         self.state.signal.notify_one();
     }

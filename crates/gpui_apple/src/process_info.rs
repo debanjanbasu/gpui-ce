@@ -6,7 +6,7 @@ use gpui::{ForegroundExecutor, ThermalState};
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2_foundation::{
-    NSNotificationCenter, NSNotification, NSNotificationName, NSProcessInfo,
+    NSNotification, NSNotificationCenter, NSNotificationName, NSProcessInfo,
     NSProcessInfoPowerStateDidChangeNotification, NSProcessInfoThermalState,
     NSProcessInfoThermalStateDidChangeNotification,
 };

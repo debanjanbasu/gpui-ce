@@ -142,7 +142,10 @@ impl IosApplicationState {
     fn notify_app_lifecycle(&self, phase: AppLifecyclePhase) {
         // 0.4: window visibility is scene-managed; lifecycle flows through
         // the app-level callback which the gpui core observes.
-        if matches!(phase, AppLifecyclePhase::Active | AppLifecyclePhase::Inactive) {
+        if matches!(
+            phase,
+            AppLifecyclePhase::Active | AppLifecyclePhase::Inactive
+        ) {
             let is_active = phase == AppLifecyclePhase::Active;
             self.with_windows(|window| window.notify_active_status_change(is_active));
         }
