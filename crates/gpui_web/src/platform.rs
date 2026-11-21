@@ -161,8 +161,8 @@ impl WebPlatform {
         let foreground_executor = ForegroundExecutor::new(dispatcher);
         let text_system: Arc<dyn PlatformTextSystem> = Arc::new(
             ParleyTextSystem::new(SwashGlyphRasterizer::default())
-                .with_system_fallback_family("IBM Plex Sans")
-                .with_fallback_families(["IBM Plex Sans"]),
+                .with_system_fallback_family("IBM 3270")
+                .with_fallback_families(["IBM 3270"]),
         );
 
         let active_display: Rc<dyn PlatformDisplay> =
