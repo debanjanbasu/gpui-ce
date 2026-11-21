@@ -332,3 +332,8 @@ impl Platform for AndroidPlatform {
         true
     }
 }
+
+/// Returns the platform for the current (Android) process.
+pub fn current_platform(_headless: bool) -> Rc<dyn Platform> {
+    Rc::new(AndroidPlatform::new())
+}

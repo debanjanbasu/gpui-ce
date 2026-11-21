@@ -249,24 +249,16 @@ impl AndroidWindow {
 
 impl HasWindowHandle for AndroidWindow {
     fn window_handle(&self) -> Result<WindowHandle<'_>, raw_window_handle::HandleError> {
-        // `NativeSurface` is a Copy of the raw pointer; borrow it out of the
-        // guard so the returned `WindowHandle<'_>` ties to `&self`, not the
-        // temporary guard.
-        let native_window = *self.native_window.lock();
-        // SAFETY: `native_window` is a plain copy of the pointer; the
-        // borrowed handle's lifetime is that of `&self`, and the pointer
-        // itself stays valid for the window's lifetime.
-        let handle = unsafe { NativeSurface::window_handle(&native_window) }?;
-        Ok(handle)
+        let native_window = self.native_window.lock().native_window;
+        let handle = AndroidNdkWindowHandle::new(native_window);
+        Ok(unsafe { WindowHandle::borrow_raw(RawWindowHandle::AndroidNdk(handle)) })
     }
 }
 
 impl HasDisplayHandle for AndroidWindow {
     fn display_handle(&self) -> Result<DisplayHandle<'_>, raw_window_handle::HandleError> {
-        let native_window = *self.native_window.lock();
-        // SAFETY: as above — the copied pointer outlives the returned handle.
-        let handle = unsafe { NativeSurface::display_handle(&native_window) }?;
-        Ok(handle)
+        let handle = AndroidDisplayHandle::new();
+        Ok(unsafe { DisplayHandle::borrow_raw(RawDisplayHandle::Android(handle)) })
     }
 }
 
