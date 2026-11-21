@@ -45,6 +45,7 @@ impl AppleDispatcher {
     /// Drains all currently-ready runnables. Called from the platform's
     /// event loop tick (the ios platform polls this between UIKit events).
     pub fn drain(&self) {
+        log::info!("DBG drain entered");
         loop {
             let runnable = {
                 let mut queue = self
