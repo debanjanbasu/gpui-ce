@@ -45,6 +45,7 @@ pub struct IosPlatform(Rc<IosPlatformState>);
 
 pub(crate) struct IosPlatformState {
     pub(super) application: IosApplicationState,
+    pub(super) dispatcher: Arc<AppleDispatcher>,
     background_executor: BackgroundExecutor,
     foreground_executor: ForegroundExecutor,
     text_system: Arc<dyn PlatformTextSystem>,
@@ -65,11 +66,14 @@ impl IosPlatform {
         let dispatcher = Arc::new(AppleDispatcher::new());
 
         let text_system: Arc<dyn PlatformTextSystem> = Arc::new(
-            gpui_parley::ParleyTextSystem::new(gpui_render::SwashGlyphRasterizer::default()),
+            gpui_parley::ParleyTextSystem::new(gpui_render::SwashGlyphRasterizer::default())
+                .with_system_fallback_family("IBM 3270")
+                .with_fallback_families(["IBM 3270"]),
         );
 
         let state = Rc::new(IosPlatformState {
             application: IosApplicationState::default(),
+            dispatcher: dispatcher.clone(),
             background_executor: BackgroundExecutor::new(dispatcher.clone()),
             foreground_executor: ForegroundExecutor::new(dispatcher),
             text_system,

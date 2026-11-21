@@ -133,6 +133,7 @@ impl IosApplicationState {
         if let Some(callback) = callback {
             callback();
         }
+        log::info!("DBG boot closure returned");
     }
 
     fn notify_memory_warning(&self) {
@@ -275,6 +276,9 @@ define_class!(
         #[unsafe(method(renderFrame:))]
         fn render_frame(&self, _display_link: &CADisplayLink) {
             if let Some(platform) = self.ivars().upgrade() {
+                // Pump scheduled runnables (spawned tasks' wakeups land in the
+                // dispatcher's main queue; without this they never run).
+                platform.dispatcher.drain();
                 platform.application.with_windows(IosWindowState::request_frame);
             }
         }
@@ -319,6 +323,10 @@ define_class!(
                 display_link
             };
             *application.display_link.borrow_mut() = Some(display_link);
+            // Cold launch: the scene is already foreground, so
+            // sceneWillEnterForeground will not fire again — start the link
+            // here or neither frames nor dispatcher runnables ever pump.
+            application.set_display_link_paused(false);
         }
 
         #[unsafe(method(sceneDidDisconnect:))]

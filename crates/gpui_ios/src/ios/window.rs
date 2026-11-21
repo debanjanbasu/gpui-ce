@@ -951,7 +951,10 @@ impl PlatformWindow for IosWindow {
     fn on_active_status_change(&self, callback: Box<dyn FnMut(bool)>) {
         self.active_status_callback.set(callback);
         self.window.makeKeyAndVisible();
-        self.notify_active_status_change(self.window.isKeyWindow());
+        // No synchronous notify here: this runs inside `open_window`, while
+        // the App's RefCell is still held — the callback's `handle.update`
+        // would fail with "RefCell already borrowed". The event loop
+        // delivers the activation through didBecomeActive right after.
     }
 
     fn set_visible(&self, _visible: bool) {
