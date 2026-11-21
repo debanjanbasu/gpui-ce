@@ -208,7 +208,7 @@ impl InstanceBufferPool {
             );
         }
         let buffer = self.buffers.pop().unwrap_or_else(|| {
-            let options = if unified_memory || cfg!(target_abi = "simulator") {
+            let options = if unified_memory || cfg!(target_abi = "sim") {
                 MTLResourceOptions::StorageModeShared
                     // Buffers are write only which can benefit from the combined cache
                     // https://developer.apple.com/documentation/metal/mtlresourceoptions/cpucachemodewritecombined
@@ -630,7 +630,7 @@ impl MetalRenderer {
             // https://developer.apple.com/documentation/metal/choosing-a-resource-storage-mode-for-apple-gpus
             // Rendering MSAA textures are done in a single pass, so we can use memory-less storage on Apple Silicon
             if self.path_sample_count > 1 {
-                let storage_mode = if self.is_apple_gpu || cfg!(target_abi = "simulator") {
+                let storage_mode = if self.is_apple_gpu || cfg!(target_abi = "sim") {
                     metal::MTLStorageMode::Memoryless
                 } else {
                     metal::MTLStorageMode::Private
@@ -802,7 +802,7 @@ impl MetalRenderer {
         texture_descriptor.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
         texture_descriptor
             .set_usage(metal::MTLTextureUsage::RenderTarget | metal::MTLTextureUsage::ShaderRead);
-        texture_descriptor.set_storage_mode(if cfg!(target_abi = "simulator") {
+        texture_descriptor.set_storage_mode(if cfg!(target_abi = "sim") {
             metal::MTLStorageMode::Shared
         } else {
             metal::MTLStorageMode::Managed

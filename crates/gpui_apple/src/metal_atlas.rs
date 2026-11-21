@@ -193,7 +193,7 @@ impl MetalAtlasState {
         // https://developer.apple.com/documentation/metal/mtlresourceoptions/storagemodeshared
         // The simulator's GPU reports discrete memory but only accepts
         // Shared-mode resources (MTLSimBuffer asserts on Managed).
-        texture_descriptor.set_storage_mode(if self.is_apple_gpu || cfg!(target_abi = "simulator") {
+        texture_descriptor.set_storage_mode(if self.is_apple_gpu || cfg!(target_abi = "sim") {
             metal::MTLStorageMode::Shared
         } else {
             metal::MTLStorageMode::Managed
