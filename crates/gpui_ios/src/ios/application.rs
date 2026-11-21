@@ -9,8 +9,10 @@ use objc2::{
 };
 use objc2_foundation::{
     NSDictionary, NSObject, NSObjectProtocol, NSRunLoop, NSRunLoopCommonModes, NSSet, NSString,
+    NSTimer,
 };
 use objc2_quartz_core::CADisplayLink;
+use block2::RcBlock;
 use objc2_ui_kit::{
     UIApplication, UIApplicationDelegate, UIApplicationLaunchOptionsKey, UIOpenURLContext, UIScene,
     UISceneConfiguration, UISceneConnectionOptions, UISceneDelegate, UISceneSession, UIWindowScene,
@@ -65,6 +67,24 @@ pub(super) fn run(platform: &Rc<IosPlatformState>, on_finish_launching: Box<dyn 
     // UIKit can restore a scene delegate by class name without asking for a new configuration.
     SceneDelegate::class();
     let delegate_class = NSString::from_class(AppDelegate::class());
+    // Pump the dispatcher from the main run loop at display cadence. The
+    // CADisplayLink only ticks while the scene pipeline drives frames; the
+    // scheduler queue must drain even before/outside of that.
+    {
+        let platform = Rc::downgrade(platform);
+        let block = RcBlock::new(move |_timer: std::ptr::NonNull<NSTimer>| {
+            if let Some(platform) = platform.upgrade() {
+                platform.dispatcher.drain();
+            }
+        });
+        unsafe {
+            NSTimer::scheduledTimerWithTimeInterval_repeats_block(
+                1.0 / 30.0,
+                true,
+                &block,
+            );
+        }
+    }
     UIApplication::main(None, Some(&delegate_class), main_thread);
 }
 
@@ -133,7 +153,6 @@ impl IosApplicationState {
         if let Some(callback) = callback {
             callback();
         }
-        log::info!("DBG boot closure returned");
     }
 
     fn notify_memory_warning(&self) {
@@ -275,6 +294,7 @@ define_class!(
 
         #[unsafe(method(renderFrame:))]
         fn render_frame(&self, _display_link: &CADisplayLink) {
+            log::info!("DBG renderFrame tick");
             if let Some(platform) = self.ivars().upgrade() {
                 // Pump scheduled runnables (spawned tasks' wakeups land in the
                 // dispatcher's main queue; without this they never run).
