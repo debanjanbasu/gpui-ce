@@ -23,6 +23,9 @@ gpui.workspace = true
 gpui_render.workspace = true
 wgsl-rs.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+core-video.workspace = true
+
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 core-text.workspace = true
 scheduler.workspace = true
@@ -35,7 +38,6 @@ block.workspace = true
 collections.workspace = true
 core-foundation.workspace = true
 core-graphics.workspace = true
-core-video.workspace = true
 derive_more.workspace = true
 etagere.workspace = true
 foreign-types.workspace = true
@@ -57,7 +59,6 @@ objc2-foundation.workspace = true
 collections.workspace = true
 core-foundation.workspace = true
 core-graphics.workspace = true
-core-video.workspace = true
 derive_more.workspace = true
 etagere.workspace = true
 foreign-types.workspace = true

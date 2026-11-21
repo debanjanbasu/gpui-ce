@@ -24,6 +24,7 @@ use gpui_render::{
 use image::RgbaImage;
 
 use core_foundation::base::TCFType;
+#[cfg(target_os = "macos")]
 use core_video::{
     metal_texture::CVMetalTextureGetTexture, metal_texture_cache::CVMetalTextureCache,
     pixel_buffer::kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
@@ -261,6 +262,7 @@ pub struct MetalRenderer {
     #[allow(clippy::arc_with_non_send_sync)]
     instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>,
     sprite_atlas: Arc<MetalAtlas>,
+    #[cfg(target_os = "macos")]
     core_video_texture_cache: core_video::metal_texture_cache::CVMetalTextureCache,
     path_intermediate_texture: Option<metal::Texture>,
     path_intermediate_msaa_texture: Option<metal::Texture>,
@@ -503,6 +505,7 @@ impl MetalRenderer {
 
         let command_queue = device.new_command_queue();
         let sprite_atlas = Arc::new(MetalAtlas::new(device.clone(), is_apple_gpu));
+        #[cfg(target_os = "macos")]
         let core_video_texture_cache =
             CVMetalTextureCache::new(None, device.clone(), None).unwrap();
 
@@ -532,6 +535,7 @@ impl MetalRenderer {
             sampler,
             instance_buffer_pool,
             sprite_atlas,
+            #[cfg(target_os = "macos")]
             core_video_texture_cache,
             path_intermediate_texture: None,
             path_intermediate_msaa_texture: None,

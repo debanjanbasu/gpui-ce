@@ -51,6 +51,9 @@ gpui_macos.workspace = true
 [target.'cfg(target_os = "ios")'.dependencies]
 gpui_ios.workspace = true
 
+[target.'cfg(target_os = "android")'.dependencies]
+gpui_android.workspace = true
+
 [target.'cfg(target_os = "macos")'.dev-dependencies]
 gpui = { workspace = true, features = ["test-support"] }
 gpui_apple = { workspace = true, features = ["test-support"] }
