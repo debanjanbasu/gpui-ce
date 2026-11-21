@@ -56,7 +56,7 @@ impl AppleDispatcher {
                     .queue
                     .lock()
                     .unwrap_or_else(std::sync::PoisonError::into_inner);
-                queue.background.pop_front()
+                queue.main.pop_front()
             };
             let Some(runnable) = runnable else { break };
             runnable.run();
