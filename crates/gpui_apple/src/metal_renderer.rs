@@ -328,6 +328,13 @@ impl MetalRenderer {
     }
 
     fn create_device() -> metal::Device {
+        // On iOS there is exactly one GPU (the SoC's); `Device::all()`'s
+        // device probe crashes on some iPhone builds (AGXG14Device fails an
+        // isRemovable selector probe), so iOS goes straight to the default.
+        #[cfg(target_os = "ios")]
+        if let Some(d) = metal::Device::system_default() {
+            return d;
+        }
         // Prefer low‐power integrated GPUs on Intel Mac. On Apple
         // Silicon, there is only ever one GPU, so this is equivalent to
         // `metal::Device::system_default()`.
