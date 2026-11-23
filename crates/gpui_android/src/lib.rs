@@ -20,16 +20,34 @@ use gpui::{
 use gpui_parley::ParleyTextSystem;
 use gpui_render::SwashGlyphRasterizer;
 use parking_lot::Mutex;
+#[cfg(target_os = "android")]
+use std::{cell::Cell, cell::RefCell, ffi::c_void};
 use std::{
-    ptr::NonNull,
     path::{Path, PathBuf},
+    ptr::NonNull,
     rc::Rc,
     sync::Arc,
 };
 
 mod dispatcher;
 mod display;
+#[cfg(target_os = "android")]
+mod event_loop;
 mod window;
+
+#[cfg(target_os = "android")]
+pub use android_activity::AndroidApp;
+#[cfg(target_os = "android")]
+pub use event_loop::run;
+
+#[cfg(target_os = "android")]
+thread_local! {
+    /// The platform created by `gpui_platform::current_platform` on this
+    /// NativeActivity thread. The event loop uses it after `main` returns.
+    static ACTIVE_PLATFORM: RefCell<Option<Rc<AndroidPlatformState>>> = const { RefCell::new(None) };
+    /// The surface delivered before GPUI constructs its platform.
+    static NATIVE_WINDOW: Cell<NonNull<c_void>> = const { Cell::new(NonNull::dangling()) };
+}
 
 pub(crate) struct AndroidPlatformState {
     dispatcher: Arc<AndroidDispatcher>,
@@ -68,15 +86,22 @@ impl AndroidPlatform {
         let dispatcher = Arc::new(AndroidDispatcher::new());
         let text_system: Arc<dyn PlatformTextSystem> =
             Arc::new(ParleyTextSystem::new(SwashGlyphRasterizer::default()));
-        Self(Rc::new(AndroidPlatformState {
+        #[cfg(target_os = "android")]
+        let native_window = NATIVE_WINDOW.with(|slot| slot.get());
+        #[cfg(not(target_os = "android"))]
+        let native_window = NonNull::dangling();
+        let state = Rc::new(AndroidPlatformState {
             dispatcher,
             text_system,
             active_window: Mutex::new(None),
             displays_changed: Mutex::new(None),
             app_lifecycle: Mutex::new(None),
             memory_warning: Mutex::new(None),
-            native_window: Mutex::new(NonNull::dangling()),
-        }))
+            native_window: Mutex::new(native_window),
+        });
+        #[cfg(target_os = "android")]
+        ACTIVE_PLATFORM.with(|slot| *slot.borrow_mut() = Some(Rc::clone(&state)));
+        Self(state)
     }
 
     pub(crate) fn state(&self) -> &Rc<AndroidPlatformState> {
